@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Entornos Virtuales
+venv/
+.venv/
+env/
+.env/
+
+# Archivos de Base de Datos (generados localmente)
+*.db
+*.sqlite3
+
+# Archivos de configuración de IDEs
+.vscode/
+.idea/
+
+# Paquetes y distribución
+build/
+dist/
+*.egg-info/
