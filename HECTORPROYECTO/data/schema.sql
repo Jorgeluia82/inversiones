@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS investments (
   id INTEGER PRIMARY KEY,
   client_id INTEGER NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
   company TEXT NOT NULL,
+  -- NUEVO CAMPO 'category'
+  category TEXT NOT NULL DEFAULT 'Volatile' CHECK(category IN ('Stable', 'Volatile', 'ETF', 'Liquidez')),
   avg_price REAL NOT NULL DEFAULT 0,
   shares REAL NOT NULL DEFAULT 0,
   created_at TEXT

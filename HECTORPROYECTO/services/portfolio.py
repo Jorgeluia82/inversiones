@@ -38,7 +38,7 @@ class PortfolioService:
             raise
 
     # ---- Trades ----
-    def buy(self, client_id: int, company: str, amount: float, price: float, note: Optional[str] = None):
+    def buy(self, client_id: int, company: str, category: str, amount: float, price: float, note: Optional[str] = None):
         ensure_positive(amount, "El monto debe ser > 0")
         ensure_positive(price, "El precio debe ser > 0")
         client = repo.get_client(self.conn, client_id)
@@ -57,7 +57,7 @@ class PortfolioService:
                 repo.update_investment(self.conn, inv["id"], avg_price=new_avg, shares=new_shares)
                 inv_id = inv["id"]
             else:
-                inv_id = repo.create_investment(self.conn, client_id, company, price, shares)
+                inv_id = repo.create_investment(self.conn, client_id, company, category, price, shares)
             # capital down
             repo.update_client_capital(self.conn, client_id, -amount)
             # trade + price history
@@ -110,24 +110,53 @@ class PortfolioService:
             raise
 
     # ---- Queries ----
-    def get_last_price(self, investment_id: int) -> Optional[float]:
-        return repo.get_last_price(self.conn, investment_id)
+    def get_price_history_for_investment(self, investment_id: int) -> List[sqlite3.Row]:
+        return repo.get_price_history(self.conn, investment_id)
 
     def get_client_portfolio(self, client_id: int) -> List[Dict[str, Any]]:
-        investments = repo.get_investments_by_client(self.conn, client_id)
-        rows = []
-        for inv in investments:
+        client = repo.get_client(self.conn, client_id)
+        client_investments = repo.get_investments_by_client(self.conn, client_id)
+        all_investments = repo.get_all_investments(self.conn)
+
+        # Calcular valor total de mercado (todos los clientes)
+        total_market_value_general = 0
+        all_investments_values = {}
+        for inv in all_investments:
             current_price = repo.get_last_price(self.conn, inv["id"]) or inv["avg_price"]
+            value = current_price * inv["shares"]
+            all_investments_values[inv["id"]] = value
+            total_market_value_general += value
+        
+        # Calcular valor total de la cartera del propietario
+        total_market_value_owner = sum(v for k, v in all_investments_values.items() if any(i["id"] == k for i in client_investments))
+
+        rows = []
+        for inv in client_investments:
+            if inv["shares"] == 0: continue # No mostrar inversiones vendidas
+            
+            current_price = repo.get_last_price(self.conn, inv["id"]) or inv["avg_price"]
+            invested_amount = inv["avg_price"] * inv["shares"]
             current_value = current_price * inv["shares"]
-            pnl = (current_price - inv["avg_price"]) * inv["shares"]
+            pnl = current_value - invested_amount
+            
+            rentabilidad = (pnl / invested_amount) if invested_amount > 0 else 0.0
+            percent_in_general = (current_value / total_market_value_general) if total_market_value_general > 0 else 0.0
+            percent_in_owner = (current_value / total_market_value_owner) if total_market_value_owner > 0 else 0.0
+
             rows.append({
                 "investment_id": inv["id"],
-                "company": inv["company"],
-                "shares": inv["shares"],
-                "avg_price": inv["avg_price"],
-                "current_price": current_price,
-                "current_value": current_value,
-                "pnl": pnl,
+                "propietario": client["name"],
+                "emisor": inv["company"],
+                "categoria": inv["category"],
+                "cantidad_acciones": inv["shares"],
+                "costo_promedio": inv["avg_price"],
+                "monto_invertido": invested_amount,
+                "precio_mercado_actual": current_price,
+                "valor_actual_mercado": current_value,
+                "ganancia_perdida": pnl,
+                "rentabilidad_percent": rentabilidad,
+                "percent_cartera_general": percent_in_general,
+                "percent_cartera_propietario": percent_in_owner,
             })
         return rows
 

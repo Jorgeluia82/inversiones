@@ -90,20 +90,30 @@ class BuyDialog(BaseModal):
         super().__init__(master, title)
         frm = ttk.Frame(self, padding=12)
         frm.pack(fill="both", expand=True)
-        ttk.Label(frm, text="Empresa *").grid(row=0, column=0, sticky="w")
-        self.e_company = ttk.Entry(frm, width=26)
+        
+        ttk.Label(frm, text="Empresa *").grid(row=0, column=0, sticky="w", pady=4)
+        self.e_company = ttk.Entry(frm, width=30)
         self.e_company.grid(row=0, column=1, sticky="w", pady=4)
-        ttk.Label(frm, text="Monto a invertir *").grid(row=1, column=0, sticky="w")
+
+        ttk.Label(frm, text="Categoría *").grid(row=1, column=0, sticky="w", pady=4)
+        self.cb_category = ttk.Combobox(frm, values=['Stable', 'Volatile', 'ETF', 'Liquidez'], width=28)
+        self.cb_category.set('Volatile')
+        self.cb_category.grid(row=1, column=1, sticky="w", pady=4)
+        
+        ttk.Label(frm, text="Monto a invertir *").grid(row=2, column=0, sticky="w", pady=4)
         self.e_amount = ttk.Entry(frm, width=20)
-        self.e_amount.grid(row=1, column=1, sticky="w", pady=4)
-        ttk.Label(frm, text="Precio por acción *").grid(row=2, column=0, sticky="w")
+        self.e_amount.grid(row=2, column=1, sticky="w", pady=4)
+        
+        ttk.Label(frm, text="Precio por acción *").grid(row=3, column=0, sticky="w", pady=4)
         self.e_price = ttk.Entry(frm, width=20)
-        self.e_price.grid(row=2, column=1, sticky="w", pady=4)
-        ttk.Label(frm, text="Nota").grid(row=3, column=0, sticky="w")
+        self.e_price.grid(row=3, column=1, sticky="w", pady=4)
+        
+        ttk.Label(frm, text="Nota").grid(row=4, column=0, sticky="w", pady=4)
         self.e_note = ttk.Entry(frm, width=30)
-        self.e_note.grid(row=3, column=1, sticky="w", pady=4)
+        self.e_note.grid(row=4, column=1, sticky="w", pady=4)
+        
         btns = ttk.Frame(frm)
-        btns.grid(row=4, column=0, columnspan=2, pady=8)
+        btns.grid(row=5, column=0, columnspan=2, pady=8)
         ttk.Button(btns, text="Cancelar", command=self.on_close, bootstyle="secondary").pack(side="right", padx=6)
         ttk.Button(btns, text="Comprar", command=self.on_ok, bootstyle="primary").pack(side="right")
         self.bind("<Return>", lambda _e: self.on_ok())
@@ -111,15 +121,27 @@ class BuyDialog(BaseModal):
     def on_ok(self):
         from utils.validation import parse_float_or_none
         company = self.e_company.get().strip()
+        category = self.cb_category.get()
         amount = parse_float_or_none(self.e_amount.get())
         price = parse_float_or_none(self.e_price.get())
+        
         if not company:
             messagebox.showwarning("Validación", "Empresa es obligatoria")
+            return
+        if not category:
+            messagebox.showwarning("Validación", "Categoría es obligatoria")
             return
         if amount is None or amount <= 0 or price is None or price <= 0:
             messagebox.showwarning("Validación", "Monto/Precio inválidos")
             return
-        self.result = {"company": company, "amount": float(amount), "price": float(price), "note": self.e_note.get().strip() or None}
+            
+        self.result = {
+            "company": company,
+            "category": category,
+            "amount": float(amount),
+            "price": float(price),
+            "note": self.e_note.get().strip() or None
+        }
         self.destroy()
 
 class SellDialog(BaseModal):

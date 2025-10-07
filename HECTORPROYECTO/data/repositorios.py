@@ -35,6 +35,10 @@ def get_investments_by_client(conn: sqlite3.Connection, client_id: int) -> List[
         "SELECT * FROM investments WHERE client_id=? ORDER BY created_at DESC", (client_id,)
     ).fetchall()
 
+def get_all_investments(conn: sqlite3.Connection) -> List[sqlite3.Row]:
+    """Obtiene todas las inversiones de todos los clientes."""
+    return conn.execute("SELECT * FROM investments").fetchall()
+
 def get_investment_by_company(conn: sqlite3.Connection, client_id: int, company: str) -> Optional[sqlite3.Row]:
     return conn.execute(
         "SELECT * FROM investments WHERE client_id=? AND company=?",
@@ -44,12 +48,12 @@ def get_investment_by_company(conn: sqlite3.Connection, client_id: int, company:
 def get_investment(conn: sqlite3.Connection, investment_id: int) -> Optional[sqlite3.Row]:
     return conn.execute("SELECT * FROM investments WHERE id=?", (investment_id,)).fetchone()
 
-def create_investment(conn: sqlite3.Connection, client_id: int, company: str, avg_price: float, shares: float) -> int:
+def create_investment(conn: sqlite3.Connection, client_id: int, company: str, category: str, avg_price: float, shares: float) -> int:
     from utils.format import now_iso
     now = now_iso()
     cur = conn.execute(
-        "INSERT INTO investments (client_id, company, avg_price, shares, created_at) VALUES (?,?,?,?,?)",
-        (client_id, company, avg_price, shares, now),
+        "INSERT INTO investments (client_id, company, category, avg_price, shares, created_at) VALUES (?,?,?,?,?,?)",
+        (client_id, company, category, avg_price, shares, now),
     )
     return cur.lastrowid
 
@@ -86,6 +90,12 @@ def insert_price_history(conn: sqlite3.Connection, investment_id: int, price: fl
         "INSERT INTO price_history (investment_id, price, created_at) VALUES (?,?,?)",
         (investment_id, price, now),
     )
+
+def get_price_history(conn: sqlite3.Connection, investment_id: int) -> List[sqlite3.Row]:
+    return conn.execute(
+        "SELECT price, created_at FROM price_history WHERE investment_id=? ORDER BY created_at DESC",
+        (investment_id,),
+    ).fetchall()
 
 def get_last_price(conn: sqlite3.Connection, investment_id: int) -> Optional[float]:
     row = conn.execute(

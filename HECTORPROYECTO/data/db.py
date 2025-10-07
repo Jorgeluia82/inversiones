@@ -2,7 +2,10 @@ import os
 import sqlite3
 from pathlib import Path
 
-DB_FILE = "investments.db"
+# La ruta a la base de datos se construye relativa a la carpeta del proyecto
+# para que funcione sin importar desde dónde se ejecute el script.
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DB_FILE = PROJECT_ROOT / "investments.db"
 
 def get_connection():
     conn = sqlite3.connect(DB_FILE, isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES)
@@ -11,7 +14,8 @@ def get_connection():
     return conn
 
 def run_schema(conn: sqlite3.Connection):
-    schema_path = Path("data") / "schema.sql"
+    # Construir la ruta al schema.sql de forma robusta
+    schema_path = Path(__file__).resolve().parent / "schema.sql"
     with open(schema_path, "r", encoding="utf-8") as f:
         sql = f.read()
     with conn:
