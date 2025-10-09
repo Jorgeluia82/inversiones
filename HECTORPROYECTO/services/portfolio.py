@@ -132,22 +132,29 @@ class PortfolioService:
 
         rows = []
         for inv in client_investments:
-            if inv["shares"] == 0: continue # No mostrar inversiones vendidas
-            
+            if inv["shares"] == 0:
+                continue
+
+            invd = dict(inv)
+            cat = invd.get("category") or invd.get("categoria") or invd.get("type") or "—"
+
             current_price = repo.get_last_price(self.conn, inv["id"]) or inv["avg_price"]
             invested_amount = inv["avg_price"] * inv["shares"]
             current_value = current_price * inv["shares"]
             pnl = current_value - invested_amount
-            
+
             rentabilidad = (pnl / invested_amount) if invested_amount > 0 else 0.0
             percent_in_general = (current_value / total_market_value_general) if total_market_value_general > 0 else 0.0
             percent_in_owner = (current_value / total_market_value_owner) if total_market_value_owner > 0 else 0.0
 
             rows.append({
+                # IDs
                 "investment_id": inv["id"],
+
+                # ---- Español (por si lo usas en otro lado)
                 "propietario": client["name"],
                 "emisor": inv["company"],
-                "categoria": inv["category"],
+                "categoria": cat,
                 "cantidad_acciones": inv["shares"],
                 "costo_promedio": inv["avg_price"],
                 "monto_invertido": invested_amount,
@@ -157,7 +164,17 @@ class PortfolioService:
                 "rentabilidad_percent": rentabilidad,
                 "percent_cartera_general": percent_in_general,
                 "percent_cartera_propietario": percent_in_owner,
+
+                # ---- Inglés (lo que tu UI actual usa)
+                "company": inv["company"],
+                "shares": inv["shares"],
+                "avg_price": inv["avg_price"],
+                "current_price": current_price,
+                "current_value": current_value,
+                "pnl": pnl,
+                "category": cat,
             })
+
         return rows
 
     def _range_from_day(self, day: str) -> tuple[str, str]:

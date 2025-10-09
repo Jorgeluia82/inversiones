@@ -178,31 +178,62 @@ class ClientView(ttk.Frame):
         self.wait_window(dlg)
         if dlg.result:
             try:
-                self.svc.buy(self.client_id, dlg.result["company"], dlg.result["amount"], dlg.result["price"], dlg.result["note"])
+                self.svc.buy(
+                    self.client_id,
+                    dlg.result["company"],
+                    dlg.result.get("category", "—"),  # <<< categoría
+                    dlg.result["amount"],
+                    dlg.result["price"],
+                    dlg.result.get("note")
+                )
                 messagebox.showinfo("Listo", "Compra registrada")
                 self.refresh_all()
             except Exception as e:
                 messagebox.showerror("Error", str(e))
 
+
     def on_buy_more(self):
         inv_id = self.get_selected_investment_id()
-        if not inv_id: return
+        if not inv_id:
+            return
+
+        # 1) Monto a invertir
         dlg = AmountDialog(self, title="Añadir más (BUY)", label="Monto a invertir")
         self.wait_window(dlg)
-        if dlg.result:
-            d2 = AmountDialog(self, title="Precio por acción", label="Precio por acción")
-            self.wait_window(d2)
-            if not d2.result:
-                return
-            price = d2.result["amount"]
-            note = dlg.result["note"] or d2.result["note"]
-            inv = repo.get_investment(self.conn, inv_id)
-            try:
-                self.svc.buy(inv["client_id"], inv["company"], dlg.result["amount"], price, note)
-                messagebox.showinfo("Listo", "Compra adicional registrada")
-                self.refresh_all()
-            except Exception as e:
-                messagebox.showerror("Error", str(e))
+        if not dlg.result:
+            return
+
+        # 2) Precio por acción
+        d2 = AmountDialog(self, title="Precio por acción", label="Precio por acción")
+        self.wait_window(d2)
+        if not d2.result:
+            return
+
+        amount = dlg.result["amount"]
+        price = d2.result["amount"]
+        note = dlg.result.get("note") or d2.result.get("note")
+
+        # 3) Leer la inversión y derivar categoría (con tolerancia)
+        inv = repo.get_investment(self.conn, inv_id)
+        category = (dict(inv).get("category")
+                    or dict(inv).get("categoria")
+                    or dict(inv).get("type")
+                    or "—")
+
+        try:
+            self.svc.buy(
+                inv["client_id"],
+                inv["company"],
+                category,          # <<< categoría correcta
+                amount,
+                price,
+                note
+            )
+            messagebox.showinfo("Listo", "Compra adicional registrada")
+            self.refresh_all()
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
 
     def on_sell(self):
         inv_id = self.get_selected_investment_id()
